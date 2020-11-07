@@ -1,0 +1,2 @@
+### Spotify API model
+can be found here: [Spotify Object model ](https://developer.spotify.com/documentation/web-api/reference/object-model/https://developer.spotify.com/documentation/web-api/reference/object-model/)
