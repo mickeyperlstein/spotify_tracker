@@ -7,11 +7,14 @@ import redis
 from ..spotify_app import settings
 from ..spotify_app.AbsTracker import RedisPlaylistTracker
 from ..utils.redis_utils import redis_get_json
+import logging
 
+log = logging.getLogger(__name__)
 TRACKING_CATEGORIES_KEY = '_tracking_categories'
 
 r = redis.Redis(settings.redis_credentials) # move to a better and central location
 tracker = RedisPlaylistTracker(redis_credentials=settings.redis_credentials)
+
 
 @celery_app.task(acks_late=True)
 def test_celery(word: str) -> str:
@@ -24,11 +27,12 @@ def test_celery(word: str) -> str:
 
 @celery_app.task(acks_late=True)
 def tsk_start_tracking_all():
-    key = TRACKING_CATEGORIES_KEY
-    categories = redis_get_json(key)
+    categories = tracker.get_tracking_categories()
 
     if categories and 'items' in categories:
         for cat_item in categories['items']:
+            log.info(f'creating celery task for category {cat_item}')
+
             tsk = tsk_track_category.delay(cat_item['id'], cat_item['name'])
         current_task.update_state(state='PROGRESS',
                                   meta={'categories tracked': len(categories['items'])})
@@ -65,7 +69,7 @@ def tsk_track_category(category_id, category_name):
         task_name = make_task_name('tsk_track_playlist')
         for playlist in playlists:
 
-            celery_app.send_task(task_name, args=[playlist['id'])  # need to attach as child when done
+            celery_app.send_task(task_name, args=[playlist['id']])  # need to attach as child when done
 
 
 @celery_app.task(acks_late=True)

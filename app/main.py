@@ -1,6 +1,6 @@
 import json
-import os
 import logging
+import os
 
 import redis
 from fastapi import FastAPI, BackgroundTasks
@@ -8,6 +8,7 @@ from fastapi import FastAPI, BackgroundTasks
 from app.spotify_app import settings
 from app.worker.celery_app import celery_app, make_task_name
 from app.worker.celery_worker import TRACKING_CATEGORIES_KEY
+from spotify_app.AbsTracker import RedisPlaylistTracker
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +72,11 @@ async def add_category(category_id, category_name):
 
     return redis_put_as_json(key, updated_categories)
 
+
+@app.get("/categories")
+async def show_all_spotify_categories():
+    tracker = RedisPlaylistTracker(redis_credentials=settings.redis_credentials)
+    return tracker.get_categories()
 
 if __name__ == '__main__' and not os.environ.get('DOCKER', None):
 

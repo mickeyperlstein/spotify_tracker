@@ -8,8 +8,10 @@ import logging
 import redis
 
 from app.utils import redis_utils
+from spotify_app import settings
 
 MAX = 100
+TRACKING_CATEGORIES_KEY = '_tracking_categories'
 log = logging.getLogger(__name__)
 
 
@@ -133,7 +135,10 @@ class PlaylistTracker(AbsSpotifyTracker):
 
 class RedisPlaylistTracker (PlaylistTracker):
 
-    def __init__(self, spotify_credentials, redis_credentials):
+    def __init__(self, spotify_credentials=None, redis_credentials=None):
+        if not redis_credentials:
+            redis_credentials = settings.redis_credentials
+
         super().__init__(spotify_credentials)
         self.r = redis.Redis(**redis_credentials)
 
@@ -151,6 +156,10 @@ class RedisPlaylistTracker (PlaylistTracker):
             self._redis_put_as_json(key)
 
         return all_categories_list
+
+    def get_tracking_categories(self):
+        key = TRACKING_CATEGORIES_KEY
+        return self._redis_get_json(key)
 
     def get_playlists_for_category(self, category_id, limit=MAX, expires_on=None):
         """
